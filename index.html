@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS // OMNI-INTELLIGENCE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=AST5P33aaSqCwYJPUA4uxBb2FVAXlVeNy2PFYpYr5rBC3UEBb0INeBSs-dARDgbDdNPZR3HMkCVAiFo2&vault=true&intent=subscription" data-sdk-integration-source="button-factory"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:      #03040d;
+            --bg2:     #05081a;
+            --bg3:     #080c22;
+            --cyan:    #00e5ff;
+            --cyan2:   #0066cc;
+            --amber:   #ffab00;
+            --green:   #00e676;
+            --red:     #ff1744;
+            --purple:  #d500f9;
+            --border:  rgba(0,229,255,0.1);
+            --text:    #b0d4e8;
+        }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--bg); color:var(--text); font-family:'Rajdhani',sans-serif; height:100vh; overflow:hidden; }
+        .mono { font-family:'Share Tech Mono',monospace; }
+        .orb  { font-family:'Orbitron',sans-serif; }
+
+        /* ── SCANLINES ── */
+        body::after {
+            content:''; position:fixed; inset:0; z-index:9999; pointer-events:none;
+            background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.032) 2px,rgba(0,0,0,.032) 4px);
+        }
+
+        /* ── HUD GRID ── */
+        .hud-grid {
+            position:fixed; inset:0; z-index:0; pointer-events:none;
+            background-image:
+                linear-gradient(rgba(0,229,255,.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,229,255,.06) 1px, transparent 1px);
+            background-size:50px 50px;
+            animation:gridPulse 10s ease-in-out infinite;
+        }
+        @keyframes gridPulse{0%,100%{opacity:.5}50%{opacity:1}}
+
+        /* ── RADIAL GLOW ── */
+        .radial-glow {
+            position:fixed; inset:0; z-index:0; pointer-events:none;
+            background:
+                radial-gradient(ellipse 55% 40% at 15% 15%, rgba(0,229,255,.07) 0%, transparent 70%),
+                radial-gradient(ellipse 40% 50% at 85% 85%, rgba(255,171,0,.05) 0%, transparent 70%),
+                radial-gradient(ellipse 30% 30% at 50% 50%, rgba(213,0,249,.03) 0%, transparent 70%);
+        }
+
+        /* ── CORNER BRACKETS ── */
+        .bracket { position:relative; }
+        .bracket::before { content:''; position:absolute; top:0; left:0; width:14px; height:14px; border-top:2px solid var(--cyan); border-left:2px solid var(--cyan); }
+        .bracket::after  { content:''; position:absolute; bottom:0; right:0; width:14px; height:14px; border-bottom:2px solid var(--cyan); border-right:2px solid var(--cyan); }
+        .bracket-amber::before { border-color:var(--amber); }
+        .bracket-amber::after  { border-color:var(--amber); }
+
+        /* ── SCREENS ── */
+        .screen { position:fixed; inset:0; z-index:50; display:none; }
+        .screen.active { display:flex; }
+
+        /* ══════════════════════════════════════
+           AUTH
+        ══════════════════════════════════════ */
+        #screen-auth { background:var(--bg); align-items:center; justify-content:center; flex-direction:column; }
+
+        .auth-logo { text-align:center; margin-bottom:32px; position:relative; z-index:1; }
+        .auth-logo .n-brand {
+            font-family:'Orbitron',sans-serif; font-weight:900; font-size:42px; letter-spacing:.08em;
+            color:var(--cyan); text-shadow:0 0 30px rgba(0,229,255,.6), 0 0 80px rgba(0,229,255,.2);
+        }
+        .auth-logo .n-sub { font-family:'Share Tech Mono',monospace; font-size:9px; color:#1a4a5a; letter-spacing:.4em; text-transform:uppercase; margin-top:4px; }
+        .auth-logo .n-line { width:100px; height:1px; background:linear-gradient(90deg,transparent,var(--cyan),transparent); margin:10px auto 0; }
+
+        .auth-card {
+            position:relative; z-index:1; width:440px;
+            background:linear-gradient(160deg,rgba(0,229,255,.05),rgba(0,0,0,.6));
+            border:1px solid rgba(0,229,255,.18); padding:40px;
+            box-shadow:0 0 60px rgba(0,229,255,.06), inset 0 0 40px rgba(0,0,0,.4);
+            animation:fadeUp .5s ease-out;
+        }
+        @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+        .auth-card::before{content:'';position:absolute;top:0;left:0;width:16px;height:16px;border-top:2px solid var(--cyan);border-left:2px solid var(--cyan);}
+        .auth-card::after {content:'';position:absolute;bottom:0;right:0;width:16px;height:16px;border-bottom:2px solid var(--cyan);border-right:2px solid var(--cyan);}
+
+        .tab-row { display:flex; gap:3px; margin-bottom:28px; }
+        .tab-btn { flex:1; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:.18em; text-transform:uppercase; padding:10px; background:transparent; border:1px solid rgba(0,229,255,.1); color:#2a6070; cursor:pointer; transition:all .2s; }
+        .tab-btn.active { background:rgba(0,229,255,.08); border-color:rgba(0,229,255,.4); color:var(--cyan); }
+
+        .field-lbl { font-family:'Share Tech Mono',monospace; font-size:8px; color:#1a5060; letter-spacing:.2em; text-transform:uppercase; display:block; margin-bottom:5px; margin-top:12px; }
+        .auth-input { width:100%; background:rgba(0,229,255,.03); border:1px solid rgba(0,229,255,.14); color:#c8e8f0; font-family:'Share Tech Mono',monospace; font-size:12px; padding:11px 14px; outline:none; transition:all .2s; }
+        .auth-input:focus { border-color:rgba(0,229,255,.5); box-shadow:0 0 16px rgba(0,229,255,.07); }
+        .auth-input::placeholder { color:#1a3a4a; }
+
+        .primary-btn { width:100%; margin-top:18px; font-family:'Orbitron',sans-serif; font-weight:700; font-size:11px; letter-spacing:.18em; padding:13px; background:linear-gradient(135deg,#003a6a,#0066cc); color:#fff; border:none; cursor:pointer; transition:all .2s; clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px); }
+        .primary-btn:hover { background:linear-gradient(135deg,#0055aa,#0088ff); box-shadow:0 0 28px rgba(0,150,255,.4); }
+        .primary-btn:disabled { opacity:.4; cursor:not-allowed; }
+
+        .free-pill { display:flex; align-items:center; gap:10px; background:rgba(0,230,118,.05); border:1px solid rgba(0,230,118,.2); padding:11px 14px; margin-bottom:18px; }
+        .free-pill .fp-title { font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700; color:var(--green); }
+        .free-pill .fp-sub   { font-family:'Share Tech Mono',monospace; font-size:8px; color:#1a4a30; letter-spacing:.1em; }
+
+        /* ══════════════════════════════════════
+           PAYWALL
+        ══════════════════════════════════════ */
+        #screen-paywall { background:rgba(3,4,13,.97); backdrop-filter:blur(24px); align-items:center; justify-content:center; z-index:80; overflow-y:auto; }
+        .pw-wrap { width:100%; max-width:980px; padding:40px 20px; animation:fadeUp .5s ease-out; }
+        .pw-title { text-align:center; margin-bottom:36px; }
+        .pw-title h1 { font-family:'Orbitron',sans-serif; font-weight:900; font-size:24px; color:var(--cyan); text-shadow:0 0 24px rgba(0,229,255,.5); letter-spacing:.08em; }
+        .pw-title p  { font-family:'Share Tech Mono',monospace; font-size:10px; color:#2a6070; letter-spacing:.15em; margin-top:8px; }
+
+        .plans-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:28px; }
+        @media(max-width:680px){ .plans-grid{grid-template-columns:1fr;} }
+
+        .plan-card { background:linear-gradient(160deg,rgba(0,229,255,.06),rgba(0,0,0,.5)); border:1px solid rgba(0,229,255,.12); padding:26px 20px; position:relative; overflow:hidden; cursor:pointer; transition:all .3s; }
+        .plan-card:hover { transform:translateY(-4px); box-shadow:0 14px 40px rgba(0,229,255,.1); border-color:rgba(0,229,255,.35); }
+        .plan-card.pro-card  { border-color:rgba(255,171,0,.2); background:linear-gradient(160deg,rgba(255,171,0,.07),rgba(0,0,0,.5)); }
+        .plan-card.pro-card:hover { box-shadow:0 14px 40px rgba(255,171,0,.12); border-color:rgba(255,171,0,.45); }
+        .plan-card.elite-card{ border-color:rgba(213,0,249,.2); background:linear-gradient(160deg,rgba(213,0,249,.07),rgba(0,0,0,.5)); }
+        .plan-card.elite-card:hover { box-shadow:0 14px 40px rgba(213,0,249,.12); border-color:rgba(213,0,249,.45); }
+        .hot-tag { position:absolute; top:12px; right:12px; font-family:'Share Tech Mono',monospace; font-size:8px; color:var(--amber); border:1px solid rgba(255,171,0,.3); background:rgba(255,171,0,.07); padding:3px 10px; letter-spacing:.15em; }
+
+        .plan-name  { font-family:'Orbitron',sans-serif; font-weight:700; font-size:11px; letter-spacing:.2em; text-transform:uppercase; margin-bottom:10px; }
+        .plan-price { font-family:'Orbitron',sans-serif; font-weight:900; font-size:32px; margin:8px 0 4px; }
+        .plan-feat  { display:flex; align-items:flex-start; gap:7px; padding:5px 0; font-size:13px; color:var(--text2,#5a8090); border-bottom:1px solid rgba(0,229,255,.04); }
+        .plan-feat:last-child { border:none; }
+        .plan-feat.off { opacity:.25; text-decoration:line-through; }
+        .plan-btn { width:100%; margin-top:18px; padding:11px; font-family:'Orbitron',sans-serif; font-weight:700; font-size:10px; letter-spacing:.15em; border:none; cursor:pointer; transition:all .2s; clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px); }
+        .btn-s { background:linear-gradient(135deg,#00304a,#005588); color:var(--cyan); }
+        .btn-s:hover { background:linear-gradient(135deg,#004a6a,#0077bb); }
+        .btn-p { background:linear-gradient(135deg,#5a3a00,#aa6600); color:#fff; }
+        .btn-p:hover { box-shadow:0 0 22px rgba(255,171,0,.4); }
+        .btn-e { background:linear-gradient(135deg,#4a0060,#8800cc); color:#fff; }
+        .btn-e:hover { box-shadow:0 0 22px rgba(213,0,249,.4); }
+
+        .code-row { display:flex; gap:10px; max-width:380px; margin:12px auto 0; }
+        .code-input { flex-grow:1; background:rgba(0,229,255,.03); border:1px solid rgba(0,229,255,.15); color:#c8e8f0; font-family:'Share Tech Mono',monospace; font-size:12px; padding:11px 14px; outline:none; transition:all .2s; }
+        .code-input:focus { border-color:rgba(0,229,255,.45); }
+        .code-btn { font-family:'Orbitron',sans-serif; font-weight:700; font-size:10px; padding:11px 18px; background:rgba(0,229,255,.1); color:var(--cyan); border:1px solid rgba(0,229,255,.3); cursor:pointer; transition:all .2s; letter-spacing:.12em; }
+        .code-btn:hover { background:rgba(0,229,255,.22); }
+
+        /* ══════════════════════════════════════
+           PAYMENT MODAL
+        ══════════════════════════════════════ */
+        #payment-modal { position:fixed; inset:0; z-index:200; background:rgba(3,4,13,.97); backdrop-filter:blur(24px); display:none; align-items:center; justify-content:center; padding:20px; }
+        #payment-modal.open { display:flex; }
+        .pay-card { position:relative; width:100%; max-width:400px; background:linear-gradient(160deg,rgba(0,229,255,.06),rgba(0,0,0,.7)); border:1px solid rgba(0,229,255,.2); padding:36px; animation:fadeUp .4s ease-out; }
+        .pay-card::before{content:'';position:absolute;top:0;left:0;width:14px;height:14px;border-top:2px solid var(--cyan);border-left:2px solid var(--cyan);}
+        .pay-card::after{content:'';position:absolute;bottom:0;right:0;width:14px;height:14px;border-bottom:2px solid var(--cyan);border-right:2px solid var(--cyan);}
+        .stripe-btn { display:block; width:100%; text-align:center; font-family:'Orbitron',sans-serif; font-weight:700; font-size:11px; letter-spacing:.15em; padding:13px; background:linear-gradient(135deg,#3730a3,#6366f1); color:#fff; text-decoration:none; transition:all .2s; clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px); }
+        .stripe-btn:hover { box-shadow:0 0 24px rgba(99,102,241,.5); }
+        .or-div { display:flex; align-items:center; gap:10px; margin:14px 0; }
+        .or-div::before,.or-div::after { content:''; flex:1; height:1px; background:rgba(0,229,255,.08); }
+        .or-div span { font-family:'Share Tech Mono',monospace; font-size:8px; color:#1a4050; letter-spacing:.2em; }
+
+        /* ══════════════════════════════════════
+           APP
+        ══════════════════════════════════════ */
+        #screen-app { flex-direction:column; z-index:10; }
+
+        .app-header { position:relative; z-index:20; flex-shrink:0; height:60px; background:linear-gradient(180deg,#040818,var(--bg2)); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 24px; }
+
+        .nexus-logo { font-family:'Orbitron',sans-serif; font-weight:900; font-size:20px; color:var(--cyan); text-shadow:0 0 20px rgba(0,229,255,.6); letter-spacing:.05em; }
+        .nexus-logo span { font-size:9px; font-weight:400; color:rgba(0,229,255,.3); letter-spacing:.2em; margin-left:6px; }
+
+        #free-bar { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:6px 24px; background:rgba(255,171,0,.04); border-bottom:1px solid rgba(255,171,0,.12); }
+
+        .app-sidebar { width:248px; flex-shrink:0; background:rgba(5,8,26,.95); border-right:1px solid var(--border); display:flex; flex-direction:column; position:relative; z-index:10; }
+
+        #chat-box { flex-grow:1; overflow-y:auto; padding:28px; scrollbar-width:thin; scrollbar-color:#0d1a35 transparent; }
+        #chat-box::-webkit-scrollbar { width:3px; }
+        #chat-box::-webkit-scrollbar-thumb { background:#0d1a35; }
+
+        .msg-user { display:flex; flex-direction:column; align-items:flex-end; gap:4px; margin-bottom:22px; }
+        .msg-user .bubble { background:rgba(0,102,204,.12); border:1px solid rgba(0,102,204,.25); padding:12px 16px; max-width:76%; font-size:14px; color:#c0dcff; clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px)); line-height:1.6; }
+
+        .msg-ai { display:flex; flex-direction:column; gap:6px; margin-bottom:22px; }
+        .msg-ai .bubble { background:rgba(0,229,255,.04); border-left:2px solid rgba(0,229,255,.4); padding:14px 18px; font-size:14px; color:#a8c8dc; line-height:1.8; max-width:92%; }
+        .msg-ai .bubble strong { color:var(--cyan); font-weight:600; }
+        .msg-ai .bubble em { color:var(--amber); font-style:normal; }
+        .msg-ai .bubble h2,.msg-ai .bubble h3 { font-family:'Orbitron',sans-serif; font-size:11px; color:var(--cyan); letter-spacing:.15em; margin:14px 0 7px; }
+        .msg-ai .bubble ul { padding-left:18px; margin:8px 0; }
+        .msg-ai .bubble li { margin-bottom:4px; }
+        .msg-ai .bubble code { background:rgba(0,229,255,.08); color:var(--green); padding:2px 7px; font-family:'Share Tech Mono',monospace; font-size:12px; }
+        .msg-ai .bubble pre { background:rgba(0,0,0,.5); border:1px solid rgba(0,229,255,.1); padding:12px; overflow-x:auto; margin:10px 0; }
+
+        .typing { display:flex; gap:5px; align-items:center; }
+        .typing span { width:6px; height:6px; border-radius:50%; background:var(--cyan); margin:0 2px; animation:tp 1.2s infinite; }
+        .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+        @keyframes tp{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1.2);opacity:1;box-shadow:0 0 8px var(--cyan)}}
+
+        /* Mode buttons — 6 grid */
+        .mode-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:6px; margin-bottom:10px; }
+        @media(max-width:800px){ .mode-grid{grid-template-columns:repeat(3,1fr);} }
+        .mode-btn { font-family:'Share Tech Mono',monospace; font-size:8px; text-transform:uppercase; letter-spacing:.08em; padding:8px 4px; border:1px solid rgba(0,229,255,.08); color:#2a5060; cursor:pointer; background:transparent; transition:all .2s; }
+        .mode-btn:hover { color:#6ab8cc; border-color:rgba(0,229,255,.25); }
+        .mode-btn.active { color:var(--cyan); border-color:rgba(0,229,255,.45); background:rgba(0,229,255,.07); }
+
+        #user-input { flex-grow:1; background:rgba(0,229,255,.03); border:1px solid rgba(0,229,255,.15); color:#c8e8f0; font-family:'Share Tech Mono',monospace; font-size:13px; padding:13px 16px; outline:none; transition:all .2s; }
+        #user-input:focus { border-color:rgba(0,229,255,.5); box-shadow:0 0 18px rgba(0,229,255,.06); }
+        #user-input::placeholder { color:#1a3a4a; }
+        .exec-btn { font-family:'Orbitron',sans-serif; font-weight:700; font-size:10px; letter-spacing:.15em; padding:13px 22px; background:linear-gradient(135deg,#003a6a,#0066cc); color:#fff; border:none; cursor:pointer; transition:all .2s; clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px); white-space:nowrap; }
+        .exec-btn:hover { box-shadow:0 0 24px rgba(0,150,255,.45); }
+        .exec-btn:disabled { opacity:.4; cursor:not-allowed; }
+
+        .app-bottom { flex-shrink:0; position:relative; z-index:10; background:linear-gradient(0deg,#040818,var(--bg2)); border-top:1px solid var(--border); padding:18px 24px; }
+
+        /* ── ARSENAL ── */
+        #prompt-library { position:fixed; inset:0; z-index:70; background:rgba(3,4,13,.98); backdrop-filter:blur(24px); overflow-y:auto; display:none; scrollbar-width:thin; scrollbar-color:#0d1a35 transparent; }
+        #prompt-library.open { display:block; }
+
+        .prm-card { background:rgba(0,229,255,.03); border:1px solid rgba(0,229,255,.1); padding:16px; cursor:pointer; transition:all .25s; position:relative; overflow:hidden; }
+        .prm-card::before { content:''; position:absolute; top:0; left:-100%; width:60%; height:100%; background:linear-gradient(90deg,transparent,rgba(0,229,255,.05),transparent); transition:left .4s; }
+        .prm-card:hover::before { left:150%; }
+        .prm-card:hover { border-color:rgba(0,229,255,.4); background:rgba(0,229,255,.07); transform:translateY(-3px); }
+        .prm-card.locked { opacity:.3; cursor:not-allowed; filter:grayscale(.8); }
+
+        /* Category color tags */
+        .ctag { display:inline-block; font-family:'Share Tech Mono',monospace; font-size:7px; letter-spacing:.15em; text-transform:uppercase; padding:3px 9px; margin-bottom:8px; }
+        .ctag-biz     { color:var(--cyan);   border:1px solid rgba(0,229,255,.25);  background:rgba(0,229,255,.06); }
+        .ctag-mkt     { color:var(--amber);  border:1px solid rgba(255,171,0,.25);  background:rgba(255,171,0,.06); }
+        .ctag-creator { color:#ec4899;       border:1px solid rgba(236,72,153,.25); background:rgba(236,72,153,.06); }
+        .ctag-content { color:var(--green);  border:1px solid rgba(0,230,118,.25);  background:rgba(0,230,118,.06); }
+        .ctag-sales   { color:var(--purple); border:1px solid rgba(213,0,249,.25);  background:rgba(213,0,249,.06); }
+
+        /* ── Intel sidebar ── */
+        .intel-item { cursor:pointer; padding:10px 12px; margin-bottom:6px; background:rgba(0,229,255,.03); border:1px solid rgba(0,229,255,.07); transition:all .2s; }
+        .intel-item:hover { background:rgba(0,229,255,.07); border-color:rgba(0,229,255,.25); transform:translateX(3px); }
+        .intel-detail { display:none; padding:8px; margin-top:6px; background:rgba(0,0,0,.5); border-left:2px solid var(--cyan); font-size:11px; color:#5a8090; line-height:1.5; }
+        .intel-item.open .intel-detail { display:block; }
+
+        /* Plan badges */
+        .badge { font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:.15em; text-transform:uppercase; padding:4px 12px; border:1px solid; }
+        .b-free    { color:#4a6a7a; border-color:rgba(74,106,122,.3); background:rgba(74,106,122,.07); }
+        .b-starter { color:var(--cyan);   border-color:rgba(0,229,255,.3); background:rgba(0,229,255,.07); }
+        .b-pro     { color:var(--amber);  border-color:rgba(255,171,0,.3); background:rgba(255,171,0,.07); }
+        .b-elite   { color:var(--purple); border-color:rgba(213,0,249,.3); background:rgba(213,0,249,.07); }
+        .b-owner   { color:var(--amber);  border-color:rgba(255,171,0,.4); background:rgba(255,171,0,.1); }
+
+        /* Action btns */
+        .act { font-family:'Share Tech Mono',monospace; font-size:8px; text-transform:uppercase; letter-spacing:.1em; padding:4px 10px; cursor:pointer; background:transparent; transition:all .2s; }
+        .act-c { color:#1a5060; border:1px solid rgba(0,229,255,.12); }
+        .act-c:hover { color:var(--cyan); border-color:rgba(0,229,255,.4); }
+        .act-s { color:#1a4a30; border:1px solid rgba(0,230,118,.12); }
+        .act-s:hover { color:var(--green); border-color:rgba(0,230,118,.4); }
+
+        /* Pulse */
+        .pulse { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 7px var(--green); position:relative; }
+        .pulse::before { content:''; position:absolute; inset:-4px; border-radius:50%; border:1px solid var(--green); animation:ring 2s ease-out infinite; }
+        @keyframes ring{0%{transform:scale(1);opacity:.8}100%{transform:scale(2.8);opacity:0}}
+
+        /* Segs */
+        .seg { width:20px; height:5px; background:rgba(0,229,255,.1); transition:all .3s; }
+        .seg.used { background:var(--cyan); box-shadow:0 0 6px rgba(0,229,255,.6); }
+        .seg.used.last { background:var(--amber); box-shadow:0 0 6px rgba(255,171,0,.6); }
+
+        /* Sweep animation on status */
+        .sweep { position:relative; overflow:hidden; }
+        .sweep::before { content:''; position:absolute; left:-100%; top:0; bottom:0; width:60%; background:linear-gradient(90deg,transparent,rgba(0,229,255,.15),transparent); animation:swp 3s ease-in-out infinite; }
+        @keyframes swp { 0%{left:-100%} 100%{left:200%} }
+
+        /* Toast */
+        #toast { position:fixed; bottom:24px; right:24px; z-index:9998; font-family:'Share Tech Mono',monospace; font-size:10px; padding:10px 18px; opacity:0; transform:translateY(8px); transition:all .3s; pointer-events:none; border:1px solid; }
+        #toast.show { opacity:1; transform:translateY(0); }
+        #toast.success { color:var(--green);  border-color:rgba(0,230,118,.3); background:rgba(0,230,118,.06); }
+        #toast.error   { color:var(--red);    border-color:rgba(255,23,68,.3);  background:rgba(255,23,68,.06); }
+        #toast.info    { color:var(--cyan);   border-color:rgba(0,229,255,.3);  background:rgba(0,229,255,.06); }
+
+        .sc::-webkit-scrollbar{width:3px;}
+        .sc::-webkit-scrollbar-thumb{background:#0d1a35;}
+    </style>
+</head>
+<body>
+<div class="hud-grid"></div>
+<div class="radial-glow"></div>
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════════
+     AUTH
+══════════════════════════════════════════ -->
+<div id="screen-auth" class="screen active">
+    <div class="hud-grid"></div>
+    <div class="auth-logo" id="nexus-logo" onclick="ownerTap()" style="cursor:default;">
+        <div class="n-brand">NEXUS</div>
+        <div class="n-sub">Omni-Intelligence Platform // V2.0</div>
+        <div class="n-line"></div>
+    </div>
+    <div class="auth-card">
+        <div class="tab-row">
+            <button class="tab-btn active" id="tab-login"    onclick="switchTab('login')">[ SIGN IN ]</button>
+            <button class="tab-btn"        id="tab-register" onclick="switchTab('register')">[ SIGN UP ]</button>
+        </div>
+
+        <!-- LOGIN -->
+        <div id="form-login">
+            <label class="field-lbl">Email</label>
+            <input id="login-email" type="email" class="auth-input" placeholder="operator@nexus.io">
+            <label class="field-lbl">Password</label>
+            <input id="login-pass"  type="password" class="auth-input" placeholder="••••••••••">
+            <!-- Owner key hidden — activate by tapping NEXUS logo 5 times -->
+            <div id="owner-section" style="display:none;margin-top:14px;">
+                <label class="field-lbl" style="color:#1a3020;">⚡ OWNER ACCESS KEY</label>
+                <input id="owner-key" type="password" class="auth-input" placeholder="Enter owner key" style="border-color:rgba(0,230,118,.15);">
+            </div>
+            <button class="primary-btn" id="login-btn" onclick="doLogin()">INITIALIZE SESSION</button>
+            <div id="login-error" class="mono" style="font-size:9px;color:var(--red);margin-top:10px;display:none;"></div>
+        </div>
+
+        <!-- REGISTER -->
+        <div id="form-register" style="display:none;">
+            <div class="free-pill" style="background:rgba(0,229,255,.04);border-color:rgba(0,229,255,.2);">
+                <div style="font-size:22px;">🔐</div>
+                <div>
+                    <div class="fp-title" style="color:var(--cyan);">ACCESS CODE REQUIRED</div>
+                    <div class="fp-sub" style="color:#1a4050;">Enter your code below or purchase a plan</div>
+                </div>
+            </div>
+            <label class="field-lbl">Email</label>
+            <input id="reg-email" type="email" class="auth-input" placeholder="operator@nexus.io">
+            <label class="field-lbl">Password <span style="color:#1a2a3a;font-size:7px;">(min. 6 chars)</span></label>
+            <input id="reg-pass"  type="password" class="auth-input" placeholder="••••••••••">
+            <label class="field-lbl" style="color:#1a2a3a;">Access Code <span style="font-size:7px;">(optional — leave empty for free trial)</span></label>
+            <input id="reg-code"  type="text" class="auth-input" placeholder="STARTER-2025 / PRO-ALPHA / ELITE-MASTER">
+            <button class="primary-btn" id="reg-btn" onclick="doRegister()">CREATE FREE ACCOUNT</button>
+            <div id="reg-error"   class="mono" style="font-size:9px;color:var(--red);margin-top:10px;display:none;"></div>
+            <div id="reg-success" class="mono" style="font-size:9px;color:var(--green);margin-top:10px;display:none;"></div>
+        </div>
+
+        <div style="margin-top:20px;padding-top:14px;border-top:1px solid rgba(0,229,255,.07);text-align:center;" class="mono" style="font-size:8px;letter-spacing:.1em;color:#0d2030;">
+            <span style="font-size:8px;color:#0d2030;letter-spacing:.12em;">SECURE · ENCRYPTED · SUPABASE AUTH</span>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAYWALL
+══════════════════════════════════════════ -->
+<div id="screen-paywall" class="screen">
+    <div class="pw-wrap">
+        <div class="pw-title" ondblclick="openSecretModal()" style="cursor:default;">
+            <h1>SELECT MISSION TIER</h1>
+            <p>YOUR FREE TRIAL IS COMPLETE — CHOOSE YOUR PLAN TO CONTINUE</p>
+        </div>
+        <div class="plans-grid">
+            <!-- STARTER -->
+            <div class="plan-card bracket" onclick="selectPlan('starter')">
+                <div class="plan-name" style="color:var(--cyan);">Starter</div>
+                <div class="plan-price" style="color:var(--cyan);">$27<span style="font-size:14px;font-weight:400;color:#2a6070;">/mo</span></div>
+                <div class="mono" style="font-size:8px;color:#1a4050;letter-spacing:.12em;margin-bottom:14px;">MONTHLY SUBSCRIPTION</div>
+                <div class="plan-feat">▸ 10 AI queries per day</div>
+                <div class="plan-feat">▸ 10 Arsenal prompts</div>
+                <div class="plan-feat">▸ Business + Marketing modes</div>
+                <div class="plan-feat">▸ Save up to 15 ideas</div>
+                <div class="plan-feat off">▸ Creator tools</div>
+                <div class="plan-feat off">▸ Unlimited queries</div>
+                <button class="plan-btn btn-s">DEPLOY STARTER</button>
+            </div>
+            <!-- PRO -->
+            <div class="plan-card pro-card bracket bracket-amber" onclick="selectPlan('pro')">
+                <div class="hot-tag">MOST POPULAR</div>
+                <div class="plan-name" style="color:var(--amber);">Pro</div>
+                <div class="plan-price" style="color:var(--amber);">$67<span style="font-size:14px;font-weight:400;color:#5a4010;">/mo</span></div>
+                <div class="mono" style="font-size:8px;color:#3a2a10;letter-spacing:.12em;margin-bottom:14px;">MONTHLY SUBSCRIPTION</div>
+                <div class="plan-feat" style="color:#8a7040;">▸ 50 AI queries per day</div>
+                <div class="plan-feat" style="color:#8a7040;">▸ 20 Arsenal prompts</div>
+                <div class="plan-feat" style="color:#8a7040;">▸ All 6 modes unlocked</div>
+                <div class="plan-feat" style="color:#8a7040;">▸ Save up to 25 ideas</div>
+                <div class="plan-feat" style="color:#8a7040;">▸ Creator tools included</div>
+                <div class="plan-feat off">▸ Unlimited queries</div>
+                <button class="plan-btn btn-p">DEPLOY PRO</button>
+            </div>
+            <!-- ELITE -->
+            <div class="plan-card elite-card" onclick="selectPlan('elite')">
+                <div class="plan-name" style="color:var(--purple);">Elite</div>
+                <div class="plan-price" style="color:var(--purple);">$87<span style="font-size:14px;font-weight:400;color:#3a1050;">/mo</span></div>
+                <div class="mono" style="font-size:8px;color:#2a1040;letter-spacing:.12em;margin-bottom:14px;">MONTHLY SUBSCRIPTION</div>
+                <div class="plan-feat" style="color:#7a4090;">▸ UNLIMITED queries</div>
+                <div class="plan-feat" style="color:#7a4090;">▸ Full Arsenal (40 prompts)</div>
+                <div class="plan-feat" style="color:#7a4090;">▸ All 6 modes + priority AI</div>
+                <div class="plan-feat" style="color:#7a4090;">▸ Save up to 50 ideas</div>
+                <div class="plan-feat" style="color:#7a4090;">▸ All creator tools</div>
+                <div class="plan-feat" style="color:#7a4090;">▸ Early access features</div>
+                <button class="plan-btn btn-e">DEPLOY ELITE</button>
+            </div>
+        </div>
+        <div style="border-top:1px solid rgba(0,229,255,.08);padding-top:22px;text-align:center;">
+            <p class="mono" style="font-size:9px;color:#1a4050;letter-spacing:.12em;">Already have an access code?</p>
+            <div class="code-row">
+                <input id="paywall-code" type="text" class="code-input" placeholder="Enter access code">
+                <button onclick="activateCode()" class="code-btn">ACTIVATE</button>
+            </div>
+            <div id="paywall-error" class="mono" style="font-size:9px;color:var(--red);margin-top:8px;display:none;"></div>
+        </div>
+        <div style="text-align:center;margin-top:16px;">
+            <button onclick="doLogout()" class="mono" style="font-size:8px;color:#0d2030;background:none;border:none;cursor:pointer;letter-spacing:.1em;" onmouseover="this.style.color='#4a8090'" onmouseout="this.style.color='#0d2030'">← Sign out</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAYMENT MODAL
+══════════════════════════════════════════ -->
+<div id="payment-modal">
+    <div class="pay-card">
+        <button onclick="closePaymentModal()" class="mono" style="position:absolute;top:12px;right:12px;font-size:9px;color:#1a5060;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.15);padding:4px 10px;cursor:pointer;letter-spacing:.12em;" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='#1a5060'">[ X ]</button>
+        <div class="mono" style="font-size:8px;color:#1a5060;letter-spacing:.2em;margin-bottom:6px;">ACTIVATE PLAN</div>
+        <div id="modal-plan-name" class="orb" style="font-size:28px;font-weight:900;color:var(--cyan);margin-bottom:2px;">PRO</div>
+        <div id="modal-plan-price" class="mono" style="font-size:12px;color:#2a6070;margin-bottom:24px;">$67 / month</div>
+        <a id="stripe-link" href="#" target="_blank" class="stripe-btn">💳 &nbsp; PAY WITH CARD (STRIPE)</a>
+        <div class="or-div"><span>OR</span></div>
+        <div class="mono" style="font-size:8px;color:#1a4050;letter-spacing:.15em;margin-bottom:10px;">PAY WITH PAYPAL:</div>
+        <div id="paypal-container" style="min-height:45px;"></div>
+        <div class="mono" style="font-size:8px;color:#0d2030;text-align:center;margin-top:14px;line-height:1.9;letter-spacing:.07em;">
+            SECURE PAYMENT · MONTHLY SUBSCRIPTION · CANCEL ANYTIME<br>ACCESS CODE SENT TO YOUR EMAIL AFTER PAYMENT
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     ARSENAL LIBRARY
+══════════════════════════════════════════ -->
+<div id="prompt-library" class="sc">
+    <div style="max-width:1300px;margin:0 auto;padding:40px 24px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:18px;border-bottom:1px solid rgba(0,229,255,.1);">
+            <div>
+                <h2 class="orb" style="font-size:18px;font-weight:900;color:var(--cyan);text-shadow:0 0 20px rgba(0,229,255,.4);letter-spacing:.1em;">NEXUS ARSENAL</h2>
+                <p class="mono" style="font-size:9px;color:#1a5060;margin-top:4px;letter-spacing:.15em;">40 ELITE PROMPTS · BUSINESS + MARKETING + CREATORS · PLAN: <span id="lib-plan" style="color:var(--cyan);">—</span></p>
+            </div>
+            <button onclick="toggleLibrary()" class="mono" style="font-size:9px;padding:10px 20px;border:1px solid rgba(0,229,255,.2);color:#2a6070;background:transparent;cursor:pointer;letter-spacing:.12em;transition:all .2s;" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='#2a6070'">[ ESC / CLOSE ]</button>
+        </div>
+        <div id="arsenal-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;padding-bottom:60px;"></div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MAIN APP
+══════════════════════════════════════════ -->
+<div id="screen-app" class="screen">
+    <header class="app-header">
+        <div>
+            <div class="nexus-logo">NEXUS <span>// OMNI-INTELLIGENCE</span></div>
+            <button onclick="toggleLibrary()" class="mono" style="font-size:8px;color:#1a5060;letter-spacing:.15em;background:none;border:none;cursor:pointer;" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='#1a5060'">[ ARSENAL · CTRL+L ]</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;">
+            <div id="mode-lbl" class="mono" style="font-size:9px;color:#1a5060;letter-spacing:.1em;">MODE: <span style="color:var(--cyan)">BUSINESS</span></div>
+            <div id="plan-badge" class="badge b-free">FREE</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <div class="pulse"></div>
+                <span class="mono sweep" style="font-size:8px;color:var(--green);border:1px solid rgba(0,230,118,.2);background:rgba(0,230,118,.05);padding:4px 12px;letter-spacing:.15em;">ONLINE</span>
+            </div>
+            <button onclick="doLogout()" class="mono" style="font-size:8px;color:#1a2030;border:1px solid rgba(0,229,255,.06);padding:5px 10px;background:transparent;cursor:pointer;letter-spacing:.08em;transition:all .2s;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='#1a2030'">SIGN OUT</button>
+        </div>
+    </header>
+
+    <!-- FREE BAR -->
+    <div id="free-bar">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span class="mono" style="font-size:8px;color:#7a6020;letter-spacing:.1em;">FREE TRIAL:</span>
+            <div style="display:flex;gap:3px;">
+                <div class="seg" id="seg0"></div>
+                <div class="seg" id="seg1"></div>
+            </div>
+            <span id="free-lbl" class="mono" style="font-size:8px;color:#7a6020;">2 queries remaining</span>
+        </div>
+        <button onclick="showPaywall()" class="mono" style="font-size:9px;color:var(--amber);border:1px solid rgba(255,171,0,.3);background:rgba(255,171,0,.06);padding:5px 14px;cursor:pointer;letter-spacing:.1em;transition:all .2s;" onmouseover="this.style.background='rgba(255,171,0,.15)'" onmouseout="this.style.background='rgba(255,171,0,.06)'">VIEW PLANS →</button>
+    </div>
+
+    <main style="flex-grow:1;display:flex;overflow:hidden;position:relative;z-index:10;">
+
+        <!-- SIDEBAR -->
+        <div class="app-sidebar sc" style="overflow-y:auto;">
+            <div style="padding:18px;flex-grow:1;">
+                <div class="mono" style="font-size:8px;color:#0d2030;letter-spacing:.2em;text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid rgba(0,229,255,.06);margin-bottom:10px;">SAVED INTEL</div>
+                <div id="intel-archive"></div>
+                <div id="empty-archive" class="mono" style="font-size:8px;color:#0d2030;text-align:center;padding:28px 0;line-height:2.2;letter-spacing:.08em;">— EMPTY —<br>Save AI responses<br>for quick access</div>
+            </div>
+            <div style="padding:14px;border-top:1px solid rgba(0,229,255,.06);">
+                <button onclick="clearArchive()" class="mono" style="width:100%;font-size:8px;color:#0d2030;letter-spacing:.15em;background:none;border:none;cursor:pointer;text-transform:uppercase;transition:all .2s;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='#0d2030'">[ PURGE MEMORY ]</button>
+            </div>
+        </div>
+
+        <!-- CHAT -->
+        <section style="flex-grow:1;display:flex;flex-direction:column;overflow:hidden;">
+            <div id="chat-box" class="sc"></div>
+            <div class="app-bottom">
+                <div style="max-width:920px;margin:0 auto;">
+                    <div class="mode-grid">
+                        <button onclick="setMode('business')"  id="btn-business"  class="mode-btn active">⬡ Business</button>
+                        <button onclick="setMode('marketing')" id="btn-marketing" class="mode-btn">⬡ Marketing</button>
+                        <button onclick="setMode('sales')"     id="btn-sales"     class="mode-btn">⬡ Sales</button>
+                        <button onclick="setMode('content')"   id="btn-content"   class="mode-btn">⬡ Content</button>
+                        <button onclick="setMode('creator')"   id="btn-creator"   class="mode-btn">⬡ Creator</button>
+                        <button onclick="setMode('strategy')"  id="btn-strategy"  class="mode-btn">⬡ Strategy</button>
+                    </div>
+                    <div style="display:flex;gap:10px;">
+                        <input id="user-input" type="text" placeholder="Enter directive..." autocomplete="off" spellcheck="false">
+                        <button id="send-btn" onclick="sendMessage()" class="exec-btn">EXECUTE ▶</button>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-top:7px;">
+                        <span class="mono" style="font-size:8px;color:#0d2030;letter-spacing:.08em;">ENTER to send · CTRL+L Arsenal · ESC close</span>
+                        <span id="char-count" class="mono" style="font-size:8px;color:#0d2030;">0 chars</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+// ╔══════════════════════════════════════════════════╗
+// ║  NEXUS CONFIG — set real values in Vercel env    ║
+// ╚══════════════════════════════════════════════════╝
+const SUPABASE_URL  = window.__ENV__?.SUPABASE_URL  || 'https://powptrlcqynjuuxrsgpu.supabase.co';
+const SUPABASE_ANON = window.__ENV__?.SUPABASE_ANON || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvd3B0cmxjcXluanV1eHJzZ3B1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODA2MTcsImV4cCI6MjA4ODY1NjYxN30.FCrDY2MwW1zD29FjISm_XpgtqxW8QY_9dOmU5vw-Yw8';
+const OWNER_KEY = 'OWNER-NEXUS-INFINITY-2025';
+
+const ACCESS_CODES = {
+    'STARTER-2025': 'starter',
+    'PRO-ALPHA':    'pro',
+    'ELITE-MASTER': 'elite',
+};
+
+const PLAN_LIMITS  = { free:0, starter:10, pro:50, elite:Infinity, owner:Infinity };
+const PLAN_ARSENAL = { free:0, starter:10, pro:20, elite:40,       owner:40       };
+const PLAN_LABELS  = { free:'FREE', starter:'STARTER', pro:'PRO', elite:'ELITE', owner:'OWNER ∞' };
+
+const PAYMENT = {
+    starter: { label:'STARTER', price:'$27 / month', stripe:'https://buy.stripe.com/8x2aEY4gV6wi8jQ8sj3Je09', paypalId:'P-3HP58975JC652582SNGXUP4Y', color:'var(--cyan)',   code:'STARTER-2025' },
+    pro:     { label:'PRO',     price:'$67 / month', stripe:'https://buy.stripe.com/eVq28s00F3k6gQmfUL3Je0a', paypalId:'P-88106197C0029380ANGXURJY', color:'var(--amber)',  code:'PRO-ALPHA'    },
+    elite:   { label:'ELITE',   price:'$87 / month', stripe:'https://buy.stripe.com/9B628sfZD4oa0Ro4c33Je0d', paypalId:'P-5MJ22140DS472181WNGXUSFY', color:'var(--purple)', code:'ELITE-MASTER'  },
+};
+
+// ── MODES ──────────────────────────────────────────
+const MODES = {
+    business:  { label:'BUSINESS',  system:'You are NEXUS, an elite AI business strategist. Help create business plans, revenue models, agency structures, and operational systems. Respond with clear structure, actionable steps, and real numbers. Use markdown: **bold**, ## headers, numbered lists. Focus on ROI and scalability.' },
+    marketing: { label:'MARKETING', system:'You are NEXUS, an elite AI marketing strategist. Specialize in funnels, campaigns, email sequences, competitor analysis, and positioning. Respond with frameworks, copy examples, and conversion tactics. Use markdown. Include metrics and KPIs.' },
+    sales:     { label:'SALES',     system:'You are NEXUS, an elite AI sales strategist. Master of high-ticket closing, objection handling, sales scripts, and offer creation. Respond with scripts, frameworks, and psychology-based tactics. Use markdown. Focus on conversion and deal size.' },
+    content:   { label:'CONTENT',   system:'You are NEXUS, an expert content strategist. Create captions, hooks, viral post ideas, and content calendars for social media. Always give 3 variations per request. Include hashtag strategies and platform-specific tips. Use markdown.' },
+    creator:   { label:'CREATOR',   system:'You are NEXUS, a creator economy expert. Specialize in Reels, TikTok, YouTube scripts, thumbnails, and audience growth. Create scroll-stopping hooks and full video scripts. Always include: hook (3 sec), structure, CTA. Use markdown.' },
+    strategy:  { label:'STRATEGY',  system:'You are NEXUS, a high-level business and digital strategy consultant. Think in systems, not tasks. Create roadmaps, competitive analyses, monetization strategies, and growth frameworks. Use markdown tables and structured reports.' },
+};
+
+// ── ARSENAL — 40 PROMPTS ───────────────────────────
+const PROMPTS = [
+    // BUSINESS (cyan)
+    { t:'01 · AI Agency Blueprint',   cat:'ctag-biz',     m:'business',  d:'Full business plan for AI automation agency.',    p:'Create a complete business plan for an AI automation agency: service offerings, pricing tiers, ideal client profile, first 90 days operational roadmap, and 12-month revenue projection. Include team structure and key metrics.' },
+    { t:'02 · Grand Slam Offer',      cat:'ctag-biz',     m:'business',  d:'Irresistible offer design with full stack.',      p:'Design an irresistible Grand Slam offer for a consulting service at $3,000. Include: offer name, value stack, bonuses, guarantee, scarcity element, and objection destroyers for the top 5 objections.' },
+    { t:'03 · Zero to $10k Roadmap',  cat:'ctag-biz',     m:'business',  d:'12-week plan from $0 to $10k/month.',             p:'Create a week-by-week 12-week roadmap to build a consulting business from $0 to $10k/month. Include: what to build each week, how to get first 3 clients, pricing strategy, and scaling milestones.' },
+    { t:'04 · SaaS Architecture',     cat:'ctag-biz',     m:'business',  d:'Technical blueprint for a SaaS product.',        p:'Design the complete technical architecture for an AI-powered SaaS product: tech stack, modules, database design, API integrations, user flow, and go-to-market strategy. Include pricing model and growth levers.' },
+    { t:'05 · Team Building System',  cat:'ctag-biz',     m:'business',  d:'Build a remote A-player team.',                   p:'Design a complete system for building a high-performance remote team for a digital agency: which roles to hire first, hiring criteria, interview process, onboarding system, and performance incentives.' },
+    { t:'06 · Retention & Upsell',    cat:'ctag-biz',     m:'business',  d:'Client retention and upgrade system.',            p:'Build a client retention and upsell system for a consulting business. Include: onboarding sequence, monthly value reporting, touchpoint schedule, upgrade triggers, and specific scripts for moving clients to higher tiers.' },
+    { t:'07 · Partnership Strategy',  cat:'ctag-biz',     m:'business',  d:'Strategic alliance framework.',                   p:'Create a complete partnership strategy for a digital agency: how to identify ideal partners, outreach sequence, partnership agreement structure, revenue sharing models, and 30-day collab calendar.' },
+    { t:'08 · Scale to 7 Figures',    cat:'ctag-biz',     m:'business',  d:'Roadmap from $10k to $100k/month.',               p:'Design a detailed roadmap to scale a digital agency from $10k/month to $100k/month. Include: what to systemize first, when to hire, which services to add, how to shift the business model, and key inflection points.' },
+    // MARKETING (amber)
+    { t:'09 · Full Funnel Design',    cat:'ctag-mkt',     m:'marketing', d:'Complete acquisition funnel with copy.',          p:'Design a complete client acquisition funnel for a digital agency: cold traffic source → lead magnet → 5-email nurture sequence → diagnostic call offer. Write the actual copy for each stage.' },
+    { t:'10 · Competitor Intel',      cat:'ctag-mkt',     m:'marketing', d:'Deep competitive analysis + gaps.',               p:'Analyze the 5 key weaknesses of traditional marketing agencies vs AI-powered agencies. Provide a competitive positioning analysis with specific opportunities for differentiation and messaging angles.' },
+    { t:'11 · 8-Week Launch Campaign',cat:'ctag-mkt',     m:'marketing', d:'Product launch campaign calendar.',               p:'Create an 8-week launch campaign for a $497 digital product: pre-launch awareness, audience warm-up, cart open strategy, daily content for launch week, and cart close sequence. Include content ideas for each phase.' },
+    { t:'12 · Email Sequence Master', cat:'ctag-mkt',     m:'marketing', d:'Welcome + nurture sequence that converts.',       p:'Write a complete 7-email welcome and nurture sequence for new subscribers of a marketing consultant. Include: subject lines, preview text, and full body copy for each email. Focus on authority building and CTA progression.' },
+    { t:'13 · Ad Copy Arsenal',       cat:'ctag-mkt',     m:'marketing', d:'Facebook + Instagram ad copy pack.',              p:'Write 3 complete Facebook/Instagram ad scripts for promoting a high-ticket consulting offer: one video ad (30 sec), one carousel (5 slides), one static image ad. Include hooks, body, and CTAs for each format.' },
+    { t:'14 · Newsletter System',     cat:'ctag-mkt',     m:'marketing', d:'Paid newsletter monetization blueprint.',         p:'Design a complete paid newsletter system for a marketing expert: niche positioning, content structure per issue, 3-tier pricing model, growth strategy, and first 10 issue topics.' },
+    { t:'15 · Cold Outreach System',  cat:'ctag-mkt',     m:'marketing', d:'Prospecting machine with IA personalization.',    p:'Build a cold outreach system for a digital agency using AI personalization: ideal prospect identification, LinkedIn + email sequence, AI personalization framework, follow-up cadence, and expected response rate benchmarks.' },
+    { t:'16 · Webinar Sales System',  cat:'ctag-mkt',     m:'marketing', d:'90-min webinar structure that closes $1,500+.',  p:'Design a complete webinar sales system for a $1,500 program: 90-minute structure, slide outline, story arc, objection handling moments, live Q&A close script, and 3-day post-webinar email sequence.' },
+    // SALES (purple)
+    { t:'17 · Elite Sales Script',    cat:'ctag-sales',   m:'sales',     d:'5-stage closing script for $3k-$10k.',           p:'Write a complete 5-stage consultative sales script for closing $3,000-$10,000 services. Include: diagnostic questions, pain amplification, solution presentation, the 5 most common objections with exact responses, and 3 closing lines.' },
+    { t:'18 · Objection Destroyer',   cat:'ctag-sales',   m:'sales',     d:'Handle every objection with confidence.',        p:'Create a complete objection handling guide for high-ticket sales. Cover: "too expensive", "need to think about it", "talk to my partner", "not the right time", and "I can do it myself". Include the psychology and exact scripts.' },
+    { t:'19 · Pricing Psychology',    cat:'ctag-sales',   m:'sales',     d:'Pricing strategy that maximizes perceived value.',p:'Create a complete pricing psychology strategy for consulting services. Include: anchor pricing tactics, decoy pricing, how to present packages, value framing scripts, and how to make premium prices feel like a bargain.' },
+    { t:'20 · Case Study Template',   cat:'ctag-sales',   m:'sales',     d:'Proof-based case study that sells itself.',      p:'Write a high-impact case study template for a digital agency. Include: narrative structure, which metrics to highlight, client quotes framework, before/after format, visual layout suggestions, and CTA. Make it sell without selling.' },
+    // CONTENT (green)
+    { t:'21 · 30-Day Content Calendar',cat:'ctag-content',m:'content',   d:'Full month multi-platform content plan.',        p:'Create a 30-day content calendar for a business/marketing expert posting on Instagram, LinkedIn, and Twitter. Include: daily theme, content format, key message, posting time, and repurposing notes. Add 4 weekly themes.' },
+    { t:'22 · Caption Triple Pack',   cat:'ctag-content', m:'content',   d:'3 caption variations for any post.',             p:'Write 3 Instagram caption variations (50, 150, and 300 words) for a post about AI for business. Include: hook, value, story, CTA. Add emojis, line breaks, and 20 hashtags grouped by reach size.' },
+    { t:'23 · LinkedIn Authority Thread',cat:'ctag-content',m:'content', d:'10-post thread to build expert status.',         p:'Write a 10-post LinkedIn thread to establish authority in AI and digital marketing. Start with a bold hook. Include: personal story, controversial insight, data points, framework, and strong CTA at the end.' },
+    { t:'24 · Carousel Post Copy',    cat:'ctag-content', m:'content',   d:'10-slide carousel that educates and converts.',  p:'Write the complete copy for a 10-slide Instagram/LinkedIn educational carousel about how to use AI in business. Each slide: title (5 words max), body text (25 words), visual idea. Add a strong CTA on final slide.' },
+    { t:'25 · Content Repurposing Map',cat:'ctag-content',m:'content',   d:'Turn 1 piece into 10 content formats.',          p:'Create a complete content repurposing workflow. Take 1 long-form YouTube video and turn it into: 3 Reels, 1 LinkedIn thread, 5 tweets, 1 email newsletter, 1 blog post summary, and 2 TikToks. Include specific instructions per format.' },
+    // CREATOR (pink)
+    { t:'26 · Viral Reel Blueprint',  cat:'ctag-creator', m:'creator',   d:'30-day Reel calendar with hooks + structure.',   p:'Create a 30-day Instagram Reels content calendar for a creator in the business/marketing niche. For each day: hook (first 3 seconds), video structure, trending audio type, and CTA. Include 5 viral hook formulas to use.' },
+    { t:'27 · YouTube Video Script',  cat:'ctag-creator', m:'creator',   d:'Complete 10-minute YouTube video script.',       p:'Write a full 10-minute YouTube video script about how to use AI to grow a business. Include: attention hook (30 sec), chapter structure with timestamps, engagement loops, B-roll suggestions, and a strong outro with CTA.' },
+    { t:'28 · TikTok Growth Strategy',cat:'ctag-creator', m:'creator',   d:'0 to 10k followers in 90 days.',                p:'Build a complete TikTok growth strategy from 0 to 10,000 followers in 90 days for a business creator. Include: niche positioning, content pillars, posting frequency, format mix, duet/stitch strategy, and weekly milestones.' },
+    { t:'29 · 20 Viral Hook Formulas',cat:'ctag-creator', m:'creator',   d:'Proven hooks with psychology breakdown.',        p:'Give me 20 proven viral hook formulas for short-form video with examples for each. Cover: curiosity gap, contrarian, number-based, story, fear, and transformation hooks. Explain the psychology behind each one.' },
+    { t:'30 · Thumbnail + Title Pack',cat:'ctag-creator', m:'creator',   d:'10 high-CTR thumbnail concepts + 20 titles.',   p:'Generate 10 high-CTR YouTube thumbnail concepts and 20 video title variations for content about AI and business. For thumbnails: composition, text (5 words), color, emotion. For titles: curiosity, listicle, how-to, and controversy formats.' },
+    // STRATEGY (mixed)
+    { t:'31 · Niche Domination Plan', cat:'ctag-biz',     m:'strategy',  d:'Become the go-to expert in your niche.',        p:'Build a complete niche positioning strategy for a consultant targeting business owners. Include: unique angle, content pillars (5), competitor gap analysis, ideal client persona, 90-day visibility roadmap, and monetization path.' },
+    { t:'32 · Monetization Roadmap',  cat:'ctag-mkt',     m:'strategy',  d:'6 income streams ranked by ease + ROI.',        p:'Design a full monetization roadmap for a digital expert with 5,000 followers. Include 6 income streams ranked by ease of launch and ROI: 1-on-1 consulting, group program, digital product, membership, affiliate, and speaking.' },
+    { t:'33 · AI Workforce System',   cat:'ctag-biz',     m:'strategy',  d:'Replace tasks with AI agents — full system.',   p:'Design a complete AI agent workforce for a small business: identify which tasks to automate, which AI tools to use for each, implementation order in 30 days, estimated time saved per week, and ROI calculation.' },
+    { t:'34 · Personal Brand System', cat:'ctag-creator', m:'strategy',  d:'90-day personal brand building system.',        p:'Create a 90-day personal brand building system for an expert in AI and marketing. Include: platform priority, content pillars, bio optimization for each platform, collaboration strategy, and weekly content schedule.' },
+    { t:'35 · Platform Expansion',    cat:'ctag-content', m:'strategy',  d:'Expand from 1 to 5 platforms in 60 days.',      p:'Create a step-by-step plan to expand from one platform to five in 60 days. Include: content repurposing workflow, platform-specific adaptations, time investment per platform, tools to automate cross-posting, and growth priority order.' },
+    { t:'36 · Pitch Deck Structure',  cat:'ctag-biz',     m:'strategy',  d:'12-slide pitch deck for investors/clients.',    p:'Create the complete structure for a 12-slide pitch deck for an AI agency targeting enterprise clients. Include: key message per slide, what data to show, visual recommendations, and what makes each slide compelling.' },
+    { t:'37 · Mindset Framework',     cat:'ctag-biz',     m:'strategy',  d:'Elite performance framework for entrepreneurs.',p:'Create a high-performance mindset framework for digital entrepreneurs. Include: the 10 most common limiting beliefs in this space, reprogramming scripts for each, and a daily routine designed for focus, creativity, and revenue growth.' },
+    { t:'38 · No-Code Automation',    cat:'ctag-biz',     m:'strategy',  d:'Make.com + AI automation workflow.',            p:'Design a complete no-code automation system using Make.com: CRM (Notion) → AI response (GPT-4) → personalized email → Slack notification. List every module, logic flow, filters, and time saved per week.' },
+    { t:'39 · Course Launch System',  cat:'ctag-mkt',     m:'strategy',  d:'6-module online course structure + launch.',    p:'Design a complete 6-module online course about AI for entrepreneurs (no tech background needed). Include: course name, module titles, lessons per module, recommended price, and a 4-week launch campaign outline.' },
+    { t:'40 · Cold to Gold System',   cat:'ctag-sales',   m:'strategy',  d:'Cold audience to paying client in 30 days.',   p:'Build a complete system to convert cold strangers to paying clients in 30 days. Include: content warm-up sequence, DM outreach script, free value offer, discovery call structure, and close. Map every touchpoint with timing.' },
+];
+
+// ── SUPABASE ──────────────────────────────────────
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let currentUser = null;
+let currentPlan = 'free';
+let currentMode = 'business';
+let freeUsed    = 0;
+let ppBtn       = null;
+
+// ── SCREENS ───────────────────────────────────────
+function showScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function showPaywall() { showScreen('screen-paywall'); }
+
+// ── AUTH ──────────────────────────────────────────
+function switchTab(tab) {
+    document.getElementById('form-login').style.display    = tab==='login'    ? 'block' : 'none';
+    document.getElementById('form-register').style.display = tab==='register' ? 'block' : 'none';
+    document.getElementById('tab-login').classList.toggle('active',    tab==='login');
+    document.getElementById('tab-register').classList.toggle('active', tab==='register');
+}
+
+async function doLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const pass  = document.getElementById('login-pass').value;
+    const btn   = document.getElementById('login-btn');
+    if (!email||!pass) { authErr('login-error','Please fill in all fields.'); return; }
+    btn.disabled=true; btn.textContent='INITIALIZING...';
+    const { data, error } = await sb.auth.signInWithPassword({ email, password:pass });
+    if (error) { authErr('login-error',error.message); btn.disabled=false; btn.textContent='INITIALIZE SESSION'; return; }
+    const plan = data.user.user_metadata?.plan || 'free';
+    await enterApp(data.user, plan);
+}
+
+async function doRegister() {
+    const email = document.getElementById('reg-email').value.trim();
+    const pass  = document.getElementById('reg-pass').value;
+    const code  = document.getElementById('reg-code').value.trim().toUpperCase();
+    const btn   = document.getElementById('reg-btn');
+    if (!email||!pass) { authErr('reg-error','Please fill in email and password.'); return; }
+    if (pass.length<6) { authErr('reg-error','Password must be at least 6 characters.'); return; }
+    let plan = 'free';
+    if (code) { if (!ACCESS_CODES[code]) { authErr('reg-error','Invalid code. Leave empty for free trial.'); return; } plan=ACCESS_CODES[code]; }
+    btn.disabled=true; btn.textContent='CREATING...';
+    const { error } = await sb.auth.signUp({ email, password:pass, options:{ data:{ plan } } });
+    if (error) { authErr('reg-error',error.message); btn.disabled=false; btn.textContent='CREATE FREE ACCOUNT'; return; }
+    const s=document.getElementById('reg-success'); s.style.display='block';
+    s.textContent = plan==='free' ? '✓ Account created! Confirm your email then sign in to start your free trial.' : `✓ ${PLAN_LABELS[plan]} account created! Confirm email then sign in.`;
+    btn.textContent='✓ ACCOUNT CREATED';
+}
+
+async function doLogout() {
+    await sb.auth.signOut(); currentUser=null; currentPlan='free'; freeUsed=0;
+    showScreen('screen-auth');
+    document.getElementById('login-btn').disabled=false;
+    document.getElementById('login-btn').textContent='INITIALIZE SESSION';
+}
+
+function authErr(id, msg) { const e=document.getElementById(id); e.textContent='[!] '+msg; e.style.display='block'; }
+
+async function enterApp(user, plan) {
+    currentUser=user; currentPlan=plan;
+    freeUsed=0;
+    updatePlanUI(); loadArchive(); renderWelcome();
+    // If no paid plan → go to paywall
+    if (plan === 'free') { showScreen('screen-paywall'); return; }
+    showScreen('screen-app'); document.getElementById('user-input').focus();
+}
+
+// ── PLAN UI ───────────────────────────────────────
+function updatePlanUI() {
+    document.getElementById('free-bar').style.display = 'none'; // No free plan
+    if (currentPlan==='free') updateFreeSegs();
+    const badge = document.getElementById('plan-badge');
+    const cls = { free:'b-free', starter:'b-starter', pro:'b-pro', elite:'b-elite', owner:'b-owner' };
+    badge.className = 'badge '+(cls[currentPlan]||'b-free');
+    badge.textContent = PLAN_LABELS[currentPlan];
+    document.getElementById('lib-plan').textContent = PLAN_LABELS[currentPlan];
+}
+
+function updateFreeSegs() {
+    const rem = Math.max(0, 2-freeUsed);
+    document.getElementById('free-lbl').textContent = `${rem} quer${rem!==1?'ies':'y'} remaining`;
+    for (let i=0;i<2;i++) { const s=document.getElementById('seg'+i); if(s) s.className='seg'+(i<freeUsed?' used'+(i===1?' last':''):''); }
+}
+
+// ── PAYMENTS ──────────────────────────────────────
+function selectPlan(plan) {
+    const cfg=PAYMENT[plan]; if(!cfg) return;
+    document.getElementById('modal-plan-name').textContent  = cfg.label;
+    document.getElementById('modal-plan-name').style.color  = cfg.color;
+    document.getElementById('modal-plan-price').textContent = cfg.price;
+    document.getElementById('stripe-link').href             = cfg.stripe;
+    document.getElementById('paypal-container').innerHTML   = '';
+    if (ppBtn) { try { ppBtn.close(); } catch(e){} }
+    ppBtn = paypal.Buttons({
+        style:{ shape:'rect', color:'gold', layout:'vertical', label:'subscribe' },
+        createSubscription: (d,a) => a.subscription.create({ plan_id:cfg.paypalId }),
+        onApprove: (d) => {
+            closePaymentModal(); showScreen('screen-app');
+            showToast(`Payment approved! ID: ${d.subscriptionID}`, 'success');
+            setTimeout(()=>appendAI(`✅ <strong>Subscription activated!</strong><br><br>PayPal ID: <code>${d.subscriptionID}</code><br><br>Admin will send your access code <strong style="color:${cfg.color}">${cfg.code}</strong> to your email shortly.<br><br>Then go to <strong>View Plans → Enter code</strong> to unlock ${cfg.label}.`), 500);
+        },
+        onError: () => showToast('PayPal error — try card payment.', 'error')
+    });
+    ppBtn.render('#paypal-container');
+    document.getElementById('payment-modal').classList.add('open');
+}
+function closePaymentModal() { document.getElementById('payment-modal').classList.remove('open'); }
+
+async function activateCode() {
+    const code=document.getElementById('paywall-code').value.trim().toUpperCase();
+    const e=document.getElementById('paywall-error');
+    if (!code) { e.textContent='[!] Enter a code.'; e.style.display='block'; return; }
+    if (!ACCESS_CODES[code]) { e.textContent='[!] Invalid code. Contact your admin.'; e.style.display='block'; return; }
+    const plan=ACCESS_CODES[code];
+    const { error }=await sb.auth.updateUser({ data:{ plan } });
+    if (error) { e.textContent='[!] '+error.message; e.style.display='block'; return; }
+    currentPlan=plan; showToast(`✓ ${PLAN_LABELS[plan]} activated!`,'success');
+    updatePlanUI(); renderWelcome(); showScreen('screen-app');
+}
+
+// ── ARSENAL ───────────────────────────────────────
+function toggleLibrary() {
+    const lib=document.getElementById('prompt-library');
+    if (!lib.classList.contains('open')) {
+        if (currentPlan==='free') { showToast('Arsenal requires a paid plan. Try your 2 free queries first!','info'); return; }
+        renderArsenal();
+    }
+    lib.classList.toggle('open');
+}
+
+function renderArsenal() {
+    const allowed=PLAN_ARSENAL[currentPlan];
+    document.getElementById('arsenal-grid').innerHTML = PROMPTS.map((p,i) => {
+        const locked=i>=allowed;
+        return `<div class="prm-card${locked?' locked':''}" data-index="${i}" data-locked="${locked}">
+            <div class="ctag ${p.cat}">${p.cat.replace('ctag-','')}</div>
+            <div class="orb" style="font-size:11px;font-weight:700;color:#a8c8dc;margin-bottom:6px;letter-spacing:.05em;">${p.t}</div>
+            <p style="font-size:11px;color:#3a6070;line-height:1.5;">${p.d}</p>
+            ${locked
+                ? `<div class="mono" style="font-size:8px;color:var(--amber);margin-top:10px;letter-spacing:.1em;">🔒 REQUIRES ${i<10?'PRO':i<20?'PRO':'ELITE'}</div>`
+                : `<div class="mono" style="font-size:8px;color:#1a5060;margin-top:10px;opacity:.6;letter-spacing:.08em;">↵ TAP TO LOAD</div>`
+            }
+        </div>`;
+    }).join('');
+
+    document.querySelectorAll('#arsenal-grid .prm-card').forEach(card => {
+        const handler = function() {
+            if (this.dataset.locked==='true') { showToast('🔒 Upgrade your plan to unlock this prompt.','info'); return; }
+            const p=PROMPTS[parseInt(this.dataset.index)];
+            usePrompt(p.p, p.m);
+        };
+        card.addEventListener('click', handler);
+        card.addEventListener('touchend', function(e){ e.preventDefault(); handler.call(this); });
+    });
+}
+
+function usePrompt(text, mode) {
+    document.getElementById('user-input').value=text;
+    document.getElementById('char-count').textContent=text.length+' chars';
+    setMode(mode);
+    document.getElementById('prompt-library').classList.remove('open');
+    document.getElementById('user-input').focus();
+}
+
+// ── MODES ─────────────────────────────────────────
+function setMode(mode) {
+    currentMode=mode;
+    document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('btn-'+mode).classList.add('active');
+    document.getElementById('mode-lbl').innerHTML=`MODE: <span style="color:var(--cyan)">${MODES[mode].label}</span>`;
+}
+
+// ── CHAT ──────────────────────────────────────────
+function escH(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderMD(text) {
+    return text
+        .replace(/```(\w*)\n([\s\S]*?)```/g,(_,l,c)=>`<pre><code>${escH(c.trim())}</code></pre>`)
+        .replace(/`([^`]+)`/g,'<code>$1</code>')
+        .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h2>$1</h2>')
+        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')
+        .replace(/^- (.+)$/gm,'<li>$1</li>').replace(/^(\d+)\. (.+)$/gm,'<li><strong style="color:var(--cyan)">$1.</strong> $2</li>')
+        .replace(/\n\n/g,'<br><br>').replace(/\n(?!<)/g,'<br>');
+}
+
+function renderWelcome() {
+    document.getElementById('chat-box').innerHTML='';
+    const isFree=currentPlan==='free';
+    const pc=currentPlan==='owner'||currentPlan==='elite'?'var(--purple)':currentPlan==='pro'?'var(--amber)':'var(--cyan)';
+    appendAI(`Operator <strong style="color:${pc}">[${PLAN_LABELS[currentPlan]}]</strong> — NEXUS online.<br><br>
+${isFree
+    ? `You have <strong>2 free queries</strong> to explore the platform. Ask about business strategy, marketing, sales, content, or creator growth.<br><br><span class="mono" style="font-size:11px;color:#1a4050;">After 2 queries, choose a plan to continue.</span>`
+    : `<strong>${PLAN_ARSENAL[currentPlan]} Arsenal prompts</strong> unlocked · ${PLAN_LIMITS[currentPlan]===Infinity?'<strong>Unlimited</strong> queries':'<strong>'+PLAN_LIMITS[currentPlan]+'</strong> queries/day'}<br><br>
+<strong>6 Modes available:</strong> Business · Marketing · Sales · Content · Creator · Strategy<br><br>
+<span class="mono" style="font-size:11px;color:#1a4050;">ENTER to send · CTRL+L for Arsenal · Select mode below ↓</span>`}`);
+}
+
+function appendAI(html, msgId) {
+    const chat=document.getElementById('chat-box');
+    const el=document.createElement('div'); el.className='msg-ai'; if(msgId) el.id=msgId;
+    el.innerHTML=`
+        <div style="display:flex;align-items:center;gap:8px;">
+            <span class="orb" style="font-size:10px;font-weight:900;color:var(--cyan);text-shadow:0 0 12px rgba(0,229,255,.5);letter-spacing:.1em;">NEXUS</span>
+            <span class="mono" style="font-size:8px;color:#0d2030;">${MODES[currentMode]?.label||''}</span>
+        </div>
+        <div class="bubble">${html}</div>
+        ${msgId?`<div style="display:flex;gap:8px;margin-top:5px;">
+            <button class="act act-c" onclick="copyMsg('${msgId}',this)">COPY</button>
+            <button class="act act-s" onclick="saveMsg('${msgId}')">SAVE</button>
+        </div>`:''}`;
+    chat.appendChild(el); chat.scrollTop=chat.scrollHeight;
+}
+
+async function sendMessage() {
+    const input=document.getElementById('user-input');
+    const btn=document.getElementById('send-btn');
+    const text=input.value.trim(); if(!text) return;
+
+    if (currentPlan==='free' && freeUsed>=2) { showPaywall(); return; }
+    if (!['free','owner','elite'].includes(currentPlan)) {
+        const dk=`nu_${currentUser?.id}_${new Date().toDateString()}`;
+        const du=parseInt(localStorage.getItem(dk)||'0');
+        if (du>=PLAN_LIMITS[currentPlan]) { showToast(`Daily limit of ${PLAN_LIMITS[currentPlan]} queries reached.`,'error'); return; }
+        localStorage.setItem(dk,du+1);
+    }
+
+    const chat=document.getElementById('chat-box');
+    const ue=document.createElement('div'); ue.className='msg-user';
+    ue.innerHTML=`<span class="mono" style="font-size:8px;color:#1a3a4a;letter-spacing:.1em;">OPERATOR</span><div class="bubble">${escH(text)}</div>`;
+    chat.appendChild(ue);
+    input.value=''; document.getElementById('char-count').textContent='0 chars';
+    btn.disabled=true; chat.scrollTop=chat.scrollHeight;
+
+    const load=document.createElement('div'); load.className='msg-ai'; load.id='loading-msg';
+    load.innerHTML=`<span class="orb" style="font-size:10px;font-weight:900;color:var(--cyan);letter-spacing:.1em;">NEXUS — PROCESSING</span><div class="bubble" style="padding:16px;"><div class="typing"><span></span><span></span><span></span></div></div>`;
+    chat.appendChild(load); chat.scrollTop=chat.scrollHeight;
+
+    try {
+        const res=await fetch('/api/chat',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ prompt:`${MODES[currentMode].system}\n\nDirective: ${text}` }) });
+        const data=await res.json();
+        if (data.error) throw new Error(data.error);
+        load.remove();
+        const mid='msg_'+Date.now();
+        appendAI(renderMD(data.text), mid);
+        if (currentPlan==='free') {
+            freeUsed++; localStorage.setItem(`nf_${currentUser?.id}`,freeUsed); updateFreeSegs();
+            if (freeUsed>=2) setTimeout(()=>appendAI(`<strong style="color:var(--amber);">Free trial complete.</strong><br><br>Ready to unlock the full platform? Choose your plan and keep building.<br><br><button onclick="showPaywall()" style="font-family:'Orbitron',sans-serif;font-weight:700;font-size:10px;padding:11px 24px;background:linear-gradient(135deg,#003a6a,#0066cc);color:#fff;border:none;cursor:pointer;letter-spacing:.15em;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);">VIEW PLANS ▶</button>`), 800);
+        }
+    } catch(e) {
+        load.remove();
+        const err=document.createElement('div'); err.className='msg-ai';
+        err.innerHTML=`<div class="bubble" style="border-left-color:var(--red);"><strong style="color:var(--red);">[!] SIGNAL FAILURE</strong><br><span style="font-size:12px;color:#6a2020;">${escH(e.message)}</span></div>`;
+        chat.appendChild(err);
+    }
+    btn.disabled=false; chat.scrollTop=chat.scrollHeight; input.focus();
+}
+
+function copyMsg(msgId,btn) {
+    const el=document.querySelector(`#${msgId} .bubble`); if(!el) return;
+    navigator.clipboard.writeText(el.innerText).then(()=>{ btn.textContent='✓ COPIED'; btn.style.color='var(--green)'; setTimeout(()=>{ btn.textContent='COPY'; btn.style.color=''; },2000); });
+}
+
+function saveMsg(msgId) {
+    const el=document.querySelector(`#${msgId} .bubble`); if(!el) return;
+    const full=el.innerText; const key=`nv_${currentUser?.id}`;
+    let arr=JSON.parse(localStorage.getItem(key)||'[]');
+    arr.unshift({ id:Date.now(), preview:full.substring(0,80)+'...', full });
+    const max=currentPlan==='elite'||currentPlan==='owner'?50:currentPlan==='pro'?25:15;
+    if(arr.length>max) arr=arr.slice(0,max);
+    localStorage.setItem(key,JSON.stringify(arr)); loadArchive();
+    showToast('Intel saved!','success');
+}
+
+function loadArchive() {
+    const c=document.getElementById('intel-archive'), e=document.getElementById('empty-archive');
+    const arr=JSON.parse(localStorage.getItem(`nv_${currentUser?.id}`)||'[]');
+    if(!arr.length){ c.innerHTML=''; e.style.display='block'; return; }
+    e.style.display='none';
+    c.innerHTML=arr.map((item,i)=>`
+        <div class="intel-item" onclick="this.classList.toggle('open')">
+            <div style="display:flex;justify-content:space-between;gap:6px;">
+                <p style="font-size:10px;color:#3a6070;line-height:1.4;">${escH(item.preview)}</p>
+                <span class="mono" style="font-size:7px;color:#0d2030;white-space:nowrap;">#${arr.length-i}</span>
+            </div>
+            <div class="intel-detail">${escH(item.full.substring(0,300))}${item.full.length>300?'...':''}</div>
+            <div style="display:flex;gap:5px;margin-top:7px;">
+                <button class="act act-c" onclick="event.stopPropagation();navigator.clipboard.writeText(this.dataset.t).then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='COPY',2000)})" data-t="${escH(item.full)}">COPY</button>
+                <button onclick="event.stopPropagation();delIntel(${item.id})" style="font-family:'Share Tech Mono',monospace;font-size:7px;color:#2a1020;background:none;border:1px solid rgba(255,23,68,.12);padding:4px 8px;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;transition:all .2s;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='#2a1020'">DEL</button>
+            </div>
+        </div>`).join('');
+}
+
+function delIntel(id) {
+    const k=`nv_${currentUser?.id}`;
+    localStorage.setItem(k,JSON.stringify(JSON.parse(localStorage.getItem(k)||'[]').filter(i=>i.id!==id)));
+    loadArchive();
+}
+function clearArchive() { if(confirm('Purge all saved intel?')){ localStorage.removeItem(`nv_${currentUser?.id}`); loadArchive(); } }
+
+let toastT;
+function showToast(msg,type='info') {
+    const t=document.getElementById('toast'); t.textContent=msg; t.className='show '+type;
+    clearTimeout(toastT); toastT=setTimeout(()=>t.className='',3500);
+}
+
+// ── OWNER SECRET TRIGGER ─────────────────────────
+let ownerTaps = 0, ownerTimer;
+function ownerTap() {
+    ownerTaps++;
+    clearTimeout(ownerTimer);
+    ownerTimer = setTimeout(() => { ownerTaps = 0; }, 2000);
+    if (ownerTaps >= 5) {
+        ownerTaps = 0;
+        const sec = document.getElementById('owner-section');
+        const isVisible = sec.style.display !== 'none';
+        sec.style.display = isVisible ? 'none' : 'block';
+        if (!isVisible) {
+            document.getElementById('owner-key').focus();
+            showToast('⚡ Owner mode activated', 'success');
+        }
+    }
+}
+
+
+// ── SECRET CODE MODAL (double-click NEXUS logo) ──
+function openSecretModal() {
+    document.getElementById('secret-code-input').value = '';
+    document.getElementById('secret-error').style.display = 'none';
+    document.getElementById('secret-modal').style.display = 'flex';
+    setTimeout(()=>document.getElementById('secret-code-input').focus(), 100);
+}
+function closeSecretModal() {
+    document.getElementById('secret-modal').style.display = 'none';
+}
+async function activateSecretCode() {
+    const code = document.getElementById('secret-code-input').value.trim();
+    const errEl = document.getElementById('secret-error');
+    if (!code) { errEl.textContent='[!] Enter a code.'; errEl.style.display='block'; return; }
+
+    // Owner key check
+    if (code === OWNER_KEY) {
+        if (!currentUser) { errEl.textContent='[!] Sign in first, then use this code.'; errEl.style.display='block'; return; }
+        const { error } = await sb.auth.updateUser({ data:{ plan:'owner' } });
+        if (error) { errEl.textContent='[!] '+error.message; errEl.style.display='block'; return; }
+        currentPlan = 'owner';
+        closeSecretModal();
+        showToast('∞ OWNER ACCESS GRANTED', 'success');
+        updatePlanUI(); renderWelcome();
+        showScreen('screen-app'); document.getElementById('user-input').focus();
+        return;
+    }
+
+    // Regular access code
+    const codeUpper = code.toUpperCase();
+    if (!ACCESS_CODES[codeUpper]) { errEl.textContent='[!] Invalid code.'; errEl.style.display='block'; return; }
+    if (!currentUser) { errEl.textContent='[!] Sign in first, then use this code.'; errEl.style.display='block'; return; }
+    const plan = ACCESS_CODES[codeUpper];
+    const { error } = await sb.auth.updateUser({ data:{ plan } });
+    if (error) { errEl.textContent='[!] '+error.message; errEl.style.display='block'; return; }
+    currentPlan = plan;
+    closeSecretModal();
+    showToast(`✓ ${PLAN_LABELS[plan]} access activated!`, 'success');
+    updatePlanUI(); renderWelcome();
+    showScreen('screen-app'); document.getElementById('user-input').focus();
+}
+
+window.onload = async () => {
+    const { data:{ session } }=await sb.auth.getSession();
+    if (session?.user) await enterApp(session.user, session.user.user_metadata?.plan||'free');
+    document.getElementById('user-input').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} });
+    document.getElementById('login-pass').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+    document.getElementById('secret-code-input').addEventListener('keydown',e=>{ if(e.key==='Enter') activateSecretCode(); if(e.key==='Escape') closeSecretModal(); });
+    document.getElementById('paywall-code').addEventListener('keydown',e=>{ if(e.key==='Enter') activateCode(); });
+    document.getElementById('user-input').addEventListener('input',e=>{ document.getElementById('char-count').textContent=e.target.value.length+' chars'; });
+    document.addEventListener('keydown',e=>{
+        if((e.ctrlKey||e.metaKey)&&e.key==='l'){ e.preventDefault(); if(currentUser) toggleLibrary(); }
+        if(e.key==='Escape'){ document.getElementById('prompt-library').classList.remove('open'); closePaymentModal(); }
+    });
+};
+</script>
+</body>
+</html>

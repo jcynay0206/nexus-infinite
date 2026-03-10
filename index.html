@@ -350,7 +350,7 @@
 ══════════════════════════════════════════ -->
 <div id="screen-paywall" class="screen">
     <div class="pw-wrap">
-        <div class="pw-title" id="logo-paywall" onclick="logoTap()" ondblclick="openSecretModal()" style="cursor:default;user-select:none;">
+        <div class="pw-title" id="logo-paywall" style="cursor:default;user-select:none;">
             <h1  style="cursor:pointer;">SELECT MISSION TIER</h1>
             <p>YOUR FREE TRIAL IS COMPLETE — CHOOSE YOUR PLAN TO CONTINUE</p>
         </div>
@@ -1039,7 +1039,8 @@ window.onload = async () => {
     document.getElementById('user-input').addEventListener('input',e=>{ document.getElementById('char-count').textContent=e.target.value.length+' chars'; });
     document.addEventListener('keydown',e=>{
         if((e.ctrlKey||e.metaKey)&&e.key==='l'){ e.preventDefault(); if(currentUser) toggleLibrary(); }
-        if(e.key==='Escape'){ document.getElementById('prompt-library').classList.remove('open'); closePaymentModal(); }
+        if(e.key==='Escape'){ document.getElementById('prompt-library').classList.remove('open'); closePaymentModal(); closeSecretModal(); }
+        if(e.ctrlKey && e.shiftKey && e.key==='K'){ e.preventDefault(); openSecretModal(); }
     });
 };
 </script>
